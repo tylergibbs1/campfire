@@ -1,0 +1,5 @@
+workspace:
+  name: "test-workspace"
+  state:
+    backend: local
+    path: ".campfire/state.json"

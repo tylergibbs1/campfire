@@ -1,0 +1,29 @@
+campaigns:
+  - name: "Test Meta Campaign"
+    provider: meta
+    objective: conversions
+    status: paused
+    ad_sets:
+      - name: "Test Ad Set"
+        budget:
+          amount: 30.00
+          period: daily
+        optimization_goal: offsite_conversions
+        billing_event: impressions
+        targeting:
+          age_min: 25
+          age_max: 55
+          genders:
+            - all
+          geo_locations:
+            countries:
+              - US
+        ads:
+          - name: "Test Image Ad"
+            type: image
+            creative:
+              image: "./assets/test.jpg"
+              headline: "Test Headline"
+              body: "Test body text."
+              call_to_action: "SHOP_NOW"
+              link: "https://example.com"

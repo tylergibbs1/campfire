@@ -1,0 +1,32 @@
+campaigns:
+  - name: "Test Campaign — Search"
+    provider: google
+    type: search
+    status: paused
+    budget:
+      amount: 50.00
+      period: daily
+    bidding:
+      strategy: maximize_conversions
+      target_cpa: 15.00
+    geo_targets:
+      - US
+    ad_groups:
+      - name: "Test Ad Group"
+        cpc_bid: 2.50
+        keywords:
+          - text: "test keyword"
+            match_type: broad
+          - text: "negative keyword"
+            match_type: exact
+            negative: true
+        ads:
+          - type: responsive_search
+            headlines:
+              - "Test Headline 1"
+              - "Test Headline 2"
+              - "Test Headline 3"
+            descriptions:
+              - "Test description one."
+              - "Test description two."
+            final_url: "https://example.com"
