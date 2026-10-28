@@ -1,6 +1,6 @@
 # campfire
 
-Terraform for ads. Define ad campaigns as YAML, then `plan` and `apply` changes to Google Ads and Meta Ads via their APIs.
+Terraform for ads. Define Google Ads and Meta Ads campaigns as YAML, review a `plan`, then `apply` the changes through the platforms' APIs. For ad ops teams who want version control, diffs, and code review for campaign changes.
 
 ```
 campfire plan
@@ -22,13 +22,7 @@ Plan: 2 to create, 1 to update, 0 to destroy
 Do you want to apply these changes? (yes/no)
 ```
 
-## Why
-
-Managing ad campaigns across platforms is a manual, error-prone, UI-clicking slog. No version control. No diffs. No code review for campaign changes. No way to spin up identical structures across accounts or roll back a bad change.
-
-Infra teams solved this years ago with Terraform. campfire brings the same workflow to ad ops.
-
-## Install
+## Quick start
 
 Requires [Bun](https://bun.sh) v1.0+.
 
@@ -38,13 +32,11 @@ cd campfire
 bun install
 ```
 
-Run the CLI during development:
+The CLI runs from source. In the commands below, `campfire` stands for `bun run src/cli/index.ts` (or `bun run dev`):
 
 ```sh
 bun run src/cli/index.ts <command>
 ```
-
-## Quick Start
 
 ```sh
 # Initialize a workspace
@@ -65,6 +57,31 @@ campfire apply
 # Check state
 campfire state list
 ```
+
+Without provider credentials, campfire runs in **local-only mode**: it tracks state without making API calls, so you can try config changes before connecting real accounts.
+
+## Why
+
+Managing ad campaigns across platforms is manual, error-prone UI clicking. No version control, no diffs, no code review for campaign changes, no way to spin up identical structures across accounts or roll back a bad change. Infra teams solved this with Terraform; campfire brings the same workflow to ad ops.
+
+## How it works
+
+1. **Config**: YAML files define your campaign hierarchy.
+2. **State**: a JSON file maps local config to remote platform resource IDs.
+3. **Plan**: diffs config against state (a three-way diff against remote is planned, see [Roadmap](#roadmap)).
+4. **Apply**: executes changes in dependency order (campaigns → ad groups → ads) and saves state after each operation.
+5. **Destroy**: deletes in reverse order (ads → ad groups → campaigns).
+
+The executor resolves parent→child relationships automatically. When creating an ad group, it looks up the campaign's remote ID from state and passes it to the API call.
+
+## Features
+
+- **Google Ads** (REST API v21): campaigns, ad groups, responsive search ads, keywords (positive and negative), budgets, geo targeting. Campaign, budget, and geo targets are created in one batch mutate call. Bidding strategies: maximize conversions, manual CPC, target CPA/ROAS. Auth: service account JSON + developer token.
+- **Meta Ads** (Graph API v24.0): campaigns, ad sets, ads (image and carousel). Image upload from local files, targeting (geo, age, gender, placements, custom audiences), optimization goals. Auth: system user access token.
+- **Plan/apply workflow**: `plan` is a dry run; `apply` asks for confirmation unless you pass `--auto-approve`.
+- **CI-friendly exit codes**: `plan` exits `2` when there are changes.
+- **Import**: bring existing platform resources under management with `campfire import <type> <id>`.
+- **Variables**: `${ENV_VAR_NAME}` for environment variables, `${var.name}` for values from `vars/*.yml` files.
 
 ## Config
 
@@ -180,7 +197,7 @@ budget:
   amount: "${var.daily_budget}"
 ```
 
-Environment variables: `${ENV_VAR_NAME}`. User variables: `${var.name}`.
+Environment variables: `${ENV_VAR_NAME}`. User variables: `${var.name}`, loaded from every `.yml` file under `vars/`.
 
 ## CLI Reference
 
@@ -192,6 +209,7 @@ Environment variables: `${ENV_VAR_NAME}`. User variables: `${var.name}`.
 | `campfire apply` | Apply changes to platforms |
 | `campfire apply --auto-approve` | Apply without confirmation |
 | `campfire destroy` | Remove all managed resources |
+| `campfire destroy --auto-approve` | Destroy without confirmation |
 | `campfire import <type> <id>` | Import existing resource (e.g. `google:campaign 123`) |
 | `campfire state list` | Show tracked resources |
 | `campfire state rm <key>` | Remove resource from state |
@@ -204,42 +222,14 @@ Environment variables: `${ENV_VAR_NAME}`. User variables: `${var.name}`.
 | 1 | Error |
 | 2 | Plan has changes (useful for CI drift detection) |
 
-## Providers
-
-### Google Ads
-
-- **API:** Google Ads REST API v21
-- **Auth:** Service account JSON + developer token
-- **Resources:** Campaign, Ad Group, Responsive Search Ad, Keywords (positive + negative), Budget, Geo Targeting
-- **Features:** Batch mutate (campaign + budget + geo targets in one API call), bidding strategies (maximize conversions, manual CPC, target CPA/ROAS)
-
-### Meta Ads
-
-- **API:** Graph API v24.0
-- **Auth:** System user access token
-- **Resources:** Campaign, Ad Set, Ad (image + carousel)
-- **Features:** Image upload from local files, targeting (geo, age, gender, placements, custom audiences), optimization goals
-
-Both providers gracefully degrade — if credentials aren't configured, campfire runs in **local-only mode** (tracks state without making API calls). This is useful for testing config changes before connecting to real accounts.
-
-## How It Works
-
-1. **Config** — YAML files define your campaign hierarchy
-2. **State** — JSON file maps local config to remote platform resource IDs
-3. **Plan** — Three-way diff: config vs state vs remote (config vs state in current version)
-4. **Apply** — Execute changes in dependency order (campaigns → ad groups → ads), save state after each operation
-5. **Destroy** — Delete in reverse order (ads → ad groups → campaigns)
-
-The executor resolves parent→child relationships automatically. When creating an ad group, it looks up the campaign's remote ID from state and passes it to the API call.
-
 ## Development
 
 ```sh
-bun test              # Run tests (62 tests)
-bun run src/cli/index.ts plan   # Run CLI
+bun test                          # Run tests (62 tests)
+bun run src/cli/index.ts plan     # Run CLI
 ```
 
-## Project Structure
+### Project structure
 
 ```
 src/
